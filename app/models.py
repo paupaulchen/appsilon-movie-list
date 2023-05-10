@@ -26,35 +26,19 @@ class BaseWikidataEntity(Model, AuditMixin):
         return f"http://www.wikidata.org/entity/{self.id}"
 
 
+def film_crew_relationship_factory(crew_title: str):
+    assoc_table = Table(
+        crew_title,
+        Model.metadata,
+        Column('id', Integer, primary_key=True),
+        Column('movie_id', Integer, ForeignKey('movie.id')),
+        Column('human_id', Integer, ForeignKey('human.id'))
+    )
+    return relationship('Human', secondary=assoc_table, backref='movie')
+
+
 class Human(BaseWikidataEntity):
     ...
-
-
-assoc_screenwriter = Table(
-    'screenwriter',
-    Model.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('movie_id', Integer, ForeignKey('movie.id')),
-    Column('human_id', Integer, ForeignKey('human.id'))
-)
-
-
-assoc_director = Table(
-    'director',
-    Model.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('movie_id', Integer, ForeignKey('movie.id')),
-    Column('human_id', Integer, ForeignKey('human.id'))
-)
-
-
-assoc_cast_member = Table(
-    'cast_member',
-    Model.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('movie_id', Integer, ForeignKey('movie.id')),
-    Column('human_id', Integer, ForeignKey('human.id'))
-)
 
 
 class FilmGenre(BaseWikidataEntity):
@@ -62,8 +46,9 @@ class FilmGenre(BaseWikidataEntity):
 
 
 class Movie(BaseWikidataEntity):
-    director = relationship('Human', secondary=assoc_director, backref='movie')
-    cast_member = relationship('Human', secondary=assoc_cast_member, backref='movie')
-    screenwriter = relationship('Human', secondary=assoc_screenwriter, backref='movie')
+    producer = film_crew_relationship_factory('producer')
+    director = film_crew_relationship_factory('director')
+    screenwriter = film_crew_relationship_factory('screenwriter')
+    cast_member = film_crew_relationship_factory('cast_member')
     pubdate = Column(Date, unique=False, nullable=False)
-    imdbid = Column(String(20), unique=False, nullable=False)
+    imdbid = Column(String(20), unique=True, nullable=False)
