@@ -13,7 +13,7 @@ AuditMixin will add automatic timestamp of created and modified by who
 
 
 """
-class WikidataEntity(Model, AuditMixin):
+class BaseWikidataEntity(Model, AuditMixin):
     id = Column(Integer, primary_key=True)
     label =  Column(String(100), unique=False, nullable=True)
     description =  Column(String(100), unique=False, nullable=True)
@@ -26,8 +26,9 @@ class WikidataEntity(Model, AuditMixin):
         return f"http://www.wikidata.org/entity/{self.id}"
 
 
-class Human(WikidataEntity):
+class Human(BaseWikidataEntity):
     ...
+
 
 assoc_screenwriter = Table(
     'screenwriter',
@@ -56,10 +57,13 @@ assoc_cast_member = Table(
 )
 
 
-class FilmGenre(WikidataEntity):
+class FilmGenre(BaseWikidataEntity):
     ...
 
-class Movie(WikidataEntity):
+
+class Movie(BaseWikidataEntity):
     director = relationship('Human', secondary=assoc_director, backref='movie')
     cast_member = relationship('Human', secondary=assoc_cast_member, backref='movie')
     screenwriter = relationship('Human', secondary=assoc_screenwriter, backref='movie')
+    pubdate = Column(Date, unique=False, nullable=False)
+    imdbid = Column(String(20), unique=False, nullable=False)
