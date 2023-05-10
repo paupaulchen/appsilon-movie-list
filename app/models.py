@@ -22,7 +22,7 @@ class BaseWikidataEntity(Model, AuditMixin):
         return self.label | self.id
     
     @hybrid_property
-    def uri():
+    def uri(self):
         return f"http://www.wikidata.org/entity/{self.id}"
 
 
