@@ -2,6 +2,8 @@ from flask_appbuilder import Model
 from flask_appbuilder.models.mixins import AuditMixin
 from sqlalchemy import Column, Integer, String, ForeignKey, Date, Table
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
+
 
 """
 
@@ -11,15 +13,21 @@ AuditMixin will add automatic timestamp of created and modified by who
 
 
 """
-
-class Human(Model, AuditMixin):
+class WikidataEntity(Model, AuditMixin):
     id = Column(Integer, primary_key=True)
-    label =  Column(String(100), unique=False, nullable=False)
-    description =  Column(String(100), unique=False, nullable=False)
+    label =  Column(String(100), unique=False, nullable=True)
+    description =  Column(String(100), unique=False, nullable=True)
 
     def __repr__(self):
-        return self.label
+        return self.label | self.id
+    
+    @hybrid_property
+    def uri():
+        return f"http://www.wikidata.org/entity/{self.id}"
 
+
+class Human(WikidataEntity):
+    ...
 
 assoc_screenwriter = Table(
     'screenwriter',
@@ -48,24 +56,10 @@ assoc_cast_member = Table(
 )
 
 
-class FilmGenre(Model, AuditMixin):
-    id = Column(Integer, primary_key=True)
-    label =  Column(String(100), unique=False, nullable=False)
-    description =  Column(String(100), unique=False, nullable=False)
+class FilmGenre(WikidataEntity):
+    ...
 
-    def __repr__(self):
-        return self.label
-
-
-class Movie(Model, AuditMixin):
-    id = Column(Integer, primary_key=True)
-    label =  Column(String(100), unique=False, nullable=False)
-    description =  Column(String(100), unique=False, nullable=False)
+class Movie(WikidataEntity):
     director = relationship('Human', secondary=assoc_director, backref='movie')
     cast_member = relationship('Human', secondary=assoc_cast_member, backref='movie')
     screenwriter = relationship('Human', secondary=assoc_screenwriter, backref='movie')
-
-
-    def __repr__(self):
-        return self.label
-
