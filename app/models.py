@@ -3,6 +3,7 @@ from flask_appbuilder.models.mixins import AuditMixin
 from sqlalchemy import Column, Integer, String, ForeignKey, Date, Table, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
+import requests
 
 
 """
@@ -14,16 +15,28 @@ AuditMixin will add automatic timestamp of created and modified by who
 
 """
 class WikidataEntityMixin:
-    id = Column(Integer, primary_key=True)
+    id = Column(String(20), primary_key=True)
     label =  Column(String(100), unique=False, nullable=True)
     description =  Column(String(100), unique=False, nullable=True)
 
     def __repr__(self):
-        return self.label | self.id
+        return self.label or self.id
     
     @hybrid_property
     def uri(self):
         return f"http://www.wikidata.org/entity/{self.id}"
+    
+    @classmethod
+    def init_from_uri(cls, uri, *args, **kwargs):
+        id = uri.split('/')[-1]
+        kwargs.setdefault('id', id)
+        response = requests.get(uri)
+        entity = response.json().get('entities', {}).get(id, {})
+        label = entity.get('labels', {}).get('en', {}).get('value')
+        kwargs.setdefault('label', label)
+        description = entity.get('descriptions', {}).get('en', {}).get('value')
+        kwargs.setdefault('description', description)
+        return cls(*args, **kwargs)
 
 
 def film_crew_relationship_factory(crew_title: str):
@@ -37,19 +50,19 @@ def film_crew_relationship_factory(crew_title: str):
     return relationship('Human', secondary=assoc_table, backref=f'{crew_title}_of')
 
 
-class Human(Model, WikidataEntityMixin):
+class Human(WikidataEntityMixin, Model):
     ...
 
 
-class FilmGenre(Model, WikidataEntityMixin):
+class FilmGenre(WikidataEntityMixin, Model):
     ...
 
 
-class Film(Model, WikidataEntityMixin):
+class Film(WikidataEntityMixin, Model):
     producers = film_crew_relationship_factory('producer')
     directors = film_crew_relationship_factory('director')
     screenwriters = film_crew_relationship_factory('screenwriter')
     cast_members = film_crew_relationship_factory('cast_member')
     pubdate = Column(Date, unique=False, nullable=False)
     imdbid = Column(String(20), unique=True, nullable=False)
-    imdbid = Column(Float, unique=False, nullable=True)
+    duration = Column(Float, unique=False, nullable=True)

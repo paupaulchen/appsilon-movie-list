@@ -2,8 +2,8 @@ from flask import render_template
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder import ModelView, ModelRestApi
 from .models import Human, FilmGenre, Film
-
-from . import appbuilder, db
+from .inject_data import populate_db
+from . import appbuilder, db, app
 
 
 class HumanView(ModelView):
@@ -57,3 +57,4 @@ def page_not_found(e):
 
 
 db.create_all()
+populate_db(app)
