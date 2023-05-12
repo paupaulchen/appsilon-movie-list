@@ -1,0 +1,3 @@
+flask-appbuilder
+SPARQLWrapper
+requests
