@@ -33,7 +33,7 @@ appbuilder.add_view(
 class FilmView(ModelView):
     datamodel = SQLAInterface(Film)
     name = "Create Film"
-
+    list_columns = ['id', 'label', 'description', 'pubdate', 'imdbid', 'duration', 'uri']
 
 appbuilder.add_view(
     FilmView,
