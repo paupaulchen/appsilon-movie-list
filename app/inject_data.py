@@ -2,7 +2,7 @@ import sys
 from SPARQLWrapper import SPARQLWrapper, JSON
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask.cli import with_appcontext
-from . import app, db
+from . import app, db, logging
 from .models import Human, Film
 from datetime import datetime
 
@@ -14,7 +14,7 @@ query = """
 SELECT DISTINCT
   ?film
   ?filmLabel
-  ?imdbid
+  (SAMPLE(?imdbid) as ?a_imdbid)
   (MIN(?pubdate) as ?first_pubdate)
   (MAX(?duration) as ?max_duration)
   (GROUP_CONCAT(DISTINCT ?genre; SEPARATOR=", ") as ?genres)
@@ -53,9 +53,45 @@ WHERE {
     ?film wdt:P161 ?cast_member.
   }
 }
-GROUP BY ?film ?filmLabel ?imdbid
+GROUP BY ?film ?filmLabel
 ORDER BY ?pubdate
 """
+
+query = """
+SELECT DISTINCT
+?film
+?filmLabel
+(SAMPLE(?imdbid) as ?a_imdbid)
+(MIN(?pubdate) as ?first_pubdate)
+(MAX(?duration) as ?max_duration)
+WHERE {
+  ?film wdt:P31 wd:Q11424.
+  ?film wdt:P577 ?pubdate.
+  ?film wdt:P345 ?imdbid.
+  OPTIONAL {
+    ?film wdt:P2047 ?duration.
+  }
+  FILTER (?pubdate >= "2013-01-01T00:00:00Z"^^xsd:dateTime)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+GROUP BY ?film ?filmLabel
+"""
+
+
+# def create_from_uri_concact(model, uri_concact):
+#     obj_arr = []
+#     for uri in uri_concact.split(', '):
+#         if not uri: continue
+#         id = uri.split('/')[-1]
+#         # Check if the object already exists
+#         obj = db.session.get(model, id)
+#         if not obj:
+#             # Create a new object if it does not exist
+#             obj = model.init_from_uri(uri)
+#             db.session.add(obj)
+#             db.session.commit()
+#         obj_arr.append(obj)
+#     return obj_arr
 
 def create_from_uri_concact(model, uri_concact):
     obj_arr = []
@@ -66,7 +102,7 @@ def create_from_uri_concact(model, uri_concact):
         obj = db.session.get(model, id)
         if not obj:
             # Create a new object if it does not exist
-            obj = model.init_from_uri(uri)
+            obj = model(id=id)
             db.session.add(obj)
             db.session.commit()
         obj_arr.append(obj)
@@ -74,31 +110,47 @@ def create_from_uri_concact(model, uri_concact):
 
 
 def fetch_sparql(endpoint_url, query):
+    logging.info(f"Fetching data from {endpoint_url}")
     user_agent = "WDQS-example Python/%s.%s" % (sys.version_info[0], sys.version_info[1])
     # TODO adjust user agent; see https://w.wiki/CX6
     sparql = SPARQLWrapper(endpoint_url, agent=user_agent)
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
-    return sparql.query().convert()["results"]["bindings"]
+    return sparql.query().convert()
 
 
 def populate_db(app):
     with app.app_context():
-        raw_films = fetch_sparql(endpoint_url, query)
+        raw_data = fetch_sparql(endpoint_url, query)
 
-        for film_data in raw_films:
-            print(film_data)
+        logging.info(f"Creating model instances")
+        for film_data in raw_data['results']['bindings']:
+
+            uri = film_data['film']['value']
+            id = uri.split('/')[-1]
+
+            label = film_data['film']['filmLabel']
+
+            duration = film_data.get('max_duration', {})
+            duration = float(duration.get('value')) if duration.get('type') == 'literal' else None
+
+            pubdate = film_data['first_pubdate']['value']
+            pubdate = datetime.strptime(pubdate, "%Y-%m-%dT%H:%M:%SZ")
+
+            imdbid = film_data['a_imdbid']['value']
 
             film = Film(
-                id = film_data['film']['value'].split('/')[-1],
-                producers=create_from_uri_concact(Human, film_data['producers']['value']),
-                directors=create_from_uri_concact(Human, film_data['directors']['value']),
-                screenwriters=create_from_uri_concact(Human, film_data['screenwriters']['value']),
-                cast_members=create_from_uri_concact(Human, film_data['cast_members']['value']),
-                pubdate=datetime.strptime(film_data['first_pubdate']['value'], "%Y-%m-%dT%H:%M:%SZ"),
-                imdbid=film_data['imdbid']['value'],
-                duration=film_data.get('max_duration', {}).get('value'),
+                id=id,
+                # producers=create_from_uri_concact(Human, film_data['producers']['value']),
+                # directors=create_from_uri_concact(Human, film_data['directors']['value']),
+                # screenwriters=create_from_uri_concact(Human, film_data['screenwriters']['value']),
+                # cast_members=create_from_uri_concact(Human, film_data['cast_members']['value']),
+                pubdate=pubdate,
+                imdbid=imdbid,
+                duration=duration,
             )
             db.session.add(film)
+
+        logging.info(f"Saving data to db")
         db.session.commit()
 
