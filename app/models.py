@@ -58,10 +58,7 @@ class FilmGenre(WikidataEntityMixin, Model):
     ...
 
 
-class Film(Model):
-    id = Column(String(20), primary_key=True)
-    label =  Column(String(100), unique=False, nullable=True)
-    description =  Column(String(100), unique=False, nullable=True)
+class Film(WikidataEntityMixin, Model):
     # producers = film_crew_relationship_factory('producer')
     # directors = film_crew_relationship_factory('director')
     # screenwriters = film_crew_relationship_factory('screenwriter')
@@ -69,10 +66,3 @@ class Film(Model):
     pubdate = Column(Date, unique=False, nullable=False)
     imdbid = Column(String(20), unique=False, nullable=False)
     duration = Column(Float, unique=False, nullable=True)
-
-    def __repr__(self):
-        return self.label or self.id
-    
-    @hybrid_property
-    def uri(self):
-        return f"http://www.wikidata.org/entity/{self.id}"
