@@ -64,5 +64,5 @@ class Film(WikidataEntityMixin, Model):
     screenwriters = film_crew_relationship_factory('screenwriter')
     cast_members = film_crew_relationship_factory('cast_member')
     pubdate = Column(Date, unique=False, nullable=False)
-    imdbid = Column(String(20), unique=True, nullable=False)
+    imdbid = Column(String(20), unique=False, nullable=False)
     duration = Column(Float, unique=False, nullable=True)
