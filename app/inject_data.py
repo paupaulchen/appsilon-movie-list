@@ -102,7 +102,10 @@ GROUP BY ?film ?filmLabel ?filmDescription
 def fetch_sparql(endpoint_url, query):
     """fetch data by sending sparql query to the endpoint"""
     logging.info(f"Fetching data from {endpoint_url}")
-    user_agent = "WDQS-example Python/%s.%s" % (sys.version_info[0], sys.version_info[1])
+    user_agent = "WDQS-example Python/%s.%s" % (
+        sys.version_info[0],
+        sys.version_info[1],
+    )
     # TODO adjust user agent; see https://w.wiki/CX6
     sparql = SPARQLWrapper(endpoint_url, agent=user_agent)
     sparql.setQuery(query)
@@ -118,22 +121,24 @@ def populate_db(db):
     raw_data = fetch_sparql(endpoint_url, query)
 
     logging.info(f"Creating model instances")
-    for film_data in raw_data['results']['bindings']:
+    for film_data in raw_data["results"]["bindings"]:
 
-        uri = film_data['film']['value']
-        id = uri.split('/')[-1]
+        uri = film_data["film"]["value"]
+        id = uri.split("/")[-1]
 
-        label = film_data['filmLabel']['value']
+        label = film_data["filmLabel"]["value"]
 
-        description = film_data.get('filmDescription', {}).get('value')
+        description = film_data.get("filmDescription", {}).get("value")
 
-        pubdate = film_data['first_pubdate']['value']
+        pubdate = film_data["first_pubdate"]["value"]
         pubdate = datetime.strptime(pubdate, "%Y-%m-%dT%H:%M:%SZ")
 
-        imdbid = film_data['a_imdbid']['value']
+        imdbid = film_data["a_imdbid"]["value"]
 
-        duration = film_data.get('max_duration', {})
-        duration = float(duration.get('value')) if duration.get('type') == 'literal' else None
+        duration = film_data.get("max_duration", {})
+        duration = (
+            float(duration.get("value")) if duration.get("type") == "literal" else None
+        )
 
         film = Film(
             id=id,

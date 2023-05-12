@@ -14,40 +14,42 @@ AuditMixin will add automatic timestamp of created and modified by who
 
 
 """
+
+
 class WikidataEntityMixin:
     id = Column(String(20), primary_key=True)
-    label =  Column(String(100), unique=False, nullable=True)
-    description =  Column(String(100), unique=False, nullable=True)
+    label = Column(String(100), unique=False, nullable=True)
+    description = Column(String(100), unique=False, nullable=True)
 
     def __repr__(self):
         return self.label or self.id
-    
+
     @hybrid_property
     def uri(self):
         return f"http://www.wikidata.org/entity/{self.id}"
-    
+
     @classmethod
     def init_from_uri(cls, uri, *args, **kwargs):
-        id = uri.split('/')[-1]
-        kwargs.setdefault('id', id)
+        id = uri.split("/")[-1]
+        kwargs.setdefault("id", id)
         response = requests.get(uri)
-        entity = response.json().get('entities', {}).get(id, {})
-        label = entity.get('labels', {}).get('en', {}).get('value')
-        kwargs.setdefault('label', label)
-        description = entity.get('descriptions', {}).get('en', {}).get('value')
-        kwargs.setdefault('description', description)
+        entity = response.json().get("entities", {}).get(id, {})
+        label = entity.get("labels", {}).get("en", {}).get("value")
+        kwargs.setdefault("label", label)
+        description = entity.get("descriptions", {}).get("en", {}).get("value")
+        kwargs.setdefault("description", description)
         return cls(*args, **kwargs)
 
 
 def film_crew_relationship_factory(crew_title: str):
     assoc_table = Table(
-        f'assoc_film_{crew_title}',
+        f"assoc_film_{crew_title}",
         Model.metadata,
-        Column('id', Integer, primary_key=True),
-        Column('film_id', Integer, ForeignKey('film.id')),
-        Column('human_id', Integer, ForeignKey('human.id'))
+        Column("id", Integer, primary_key=True),
+        Column("film_id", Integer, ForeignKey("film.id")),
+        Column("human_id", Integer, ForeignKey("human.id")),
     )
-    return relationship('Human', secondary=assoc_table, backref=f'{crew_title}_of')
+    return relationship("Human", secondary=assoc_table, backref=f"{crew_title}_of")
 
 
 class Human(WikidataEntityMixin, Model):

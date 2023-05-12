@@ -33,7 +33,15 @@ appbuilder.add_view(
 class FilmView(ModelView):
     datamodel = SQLAInterface(Film)
     name = "Create Film"
-    list_columns = ['id', 'label', 'description', 'pubdate', 'imdbid', 'duration', 'uri']
+    list_columns = [
+        "id",
+        "label",
+        "description",
+        "pubdate",
+        "imdbid",
+        "duration",
+        "uri",
+    ]
 
 
 appbuilder.add_view(
@@ -43,9 +51,7 @@ appbuilder.add_view(
 )
 
 
-"""
-    Application wide 404 error handler
-"""
+# Application wide 404 error handler
 @appbuilder.app.errorhandler(404)
 def page_not_found(e):
     return (
