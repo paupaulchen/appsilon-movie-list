@@ -61,6 +61,7 @@ query = """
 SELECT DISTINCT
 ?film
 ?filmLabel
+?filmDescription
 (SAMPLE(?imdbid) as ?a_imdbid)
 (MIN(?pubdate) as ?first_pubdate)
 (MAX(?duration) as ?max_duration)
@@ -74,24 +75,9 @@ WHERE {
   FILTER (?pubdate >= "2013-01-01T00:00:00Z"^^xsd:dateTime)
   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
 }
-GROUP BY ?film ?filmLabel
+GROUP BY ?film ?filmLabel ?filmDescription
 """
 
-
-# def create_from_uri_concact(model, uri_concact):
-#     obj_arr = []
-#     for uri in uri_concact.split(', '):
-#         if not uri: continue
-#         id = uri.split('/')[-1]
-#         # Check if the object already exists
-#         obj = db.session.get(model, id)
-#         if not obj:
-#             # Create a new object if it does not exist
-#             obj = model.init_from_uri(uri)
-#             db.session.add(obj)
-#             db.session.commit()
-#         obj_arr.append(obj)
-#     return obj_arr
 
 def create_from_uri_concact(model, uri_concact):
     obj_arr = []
@@ -102,6 +88,8 @@ def create_from_uri_concact(model, uri_concact):
         obj = db.session.get(model, id)
         if not obj:
             # Create a new object if it does not exist
+            # this sends get request; takes too long
+            # obj = model.init_from_uri(uri)
             obj = model(id=id)
             db.session.add(obj)
             db.session.commit()
@@ -129,18 +117,22 @@ def populate_db(app):
             uri = film_data['film']['value']
             id = uri.split('/')[-1]
 
-            label = film_data['film']['filmLabel']
+            label = film_data['filmLabel']['value']
 
-            duration = film_data.get('max_duration', {})
-            duration = float(duration.get('value')) if duration.get('type') == 'literal' else None
+            description = film_data.get('filmDescription', {}).get('value')
 
             pubdate = film_data['first_pubdate']['value']
             pubdate = datetime.strptime(pubdate, "%Y-%m-%dT%H:%M:%SZ")
 
             imdbid = film_data['a_imdbid']['value']
 
+            duration = film_data.get('max_duration', {})
+            duration = float(duration.get('value')) if duration.get('type') == 'literal' else None
+
             film = Film(
                 id=id,
+                label=label,
+                description=description,
                 # producers=create_from_uri_concact(Human, film_data['producers']['value']),
                 # directors=create_from_uri_concact(Human, film_data['directors']['value']),
                 # screenwriters=create_from_uri_concact(Human, film_data['screenwriters']['value']),
