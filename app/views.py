@@ -35,12 +35,12 @@ class FilmView(ModelView):
     name = "Create Film"
     list_columns = ['id', 'label', 'description', 'pubdate', 'imdbid', 'duration', 'uri']
 
+
 appbuilder.add_view(
     FilmView,
     "My FilmView",
     icon="fa-folder-open-o",
 )
-
 
 
 """
@@ -54,7 +54,3 @@ def page_not_found(e):
         ),
         404,
     )
-
-
-db.create_all()
-populate_db(app)
